@@ -1,21 +1,19 @@
 (function() {
-    // Comprobar si estamos directamente en la página de Cuevana
-    const isCuevana = window.location.hostname.includes('cuevana3.nu');
+    // Comprobar si estamos directamente en la página de Cuevana (flexible a cambios de dominio)
+    const isCuevana = window.location.hostname.includes('cuevana');
     let isEmbeddedInCuevana = false;
 
     // Si estamos dentro de un iframe (el reproductor de video de otro dominio)
-    // verificamos si la página padre es de Cuevana usando ancestorOrigins (disponible en Edge/Chrome)
+    // verificamos si la página padre es de Cuevana
     if (window.location !== window.parent.location && window.location.ancestorOrigins) {
         for (let i = 0; i < window.location.ancestorOrigins.length; i++) {
-            if (window.location.ancestorOrigins[i].includes('cuevana3.nu')) {
+            if (window.location.ancestorOrigins[i].includes('cuevana')) {
                 isEmbeddedInCuevana = true;
                 break;
             }
         }
     }
 
-    // Si no estamos en Cuevana ni en un reproductor incrustado en Cuevana, no hacemos nada.
-    // De esta manera no afectamos a ninguna otra página.
     if (!isCuevana && !isEmbeddedInCuevana) {
         return;
     }
@@ -23,38 +21,52 @@
     // 1. Sobrescribir funciones nativas para bloquear la creación de ventanas y clics programáticos
     const script = document.createElement('script');
     script.textContent = `
-      // Bloquear window.open en todos los contextos posibles
-      window.open = function(url, name, features) {
-        console.log("Pop-up de publicidad bloqueado por la extensión (window.open):", url);
-        return null; 
-      };
+      (function() {
+          // Bloquear window.open de forma robusta
+          window.open = function() { 
+              console.log("Pop-up bloqueado por la extensión."); 
+              return null; 
+          };
+          // Bloquear la restauración de window.open por scripts de publicidad
+          Object.defineProperty(window, 'open', { writable: false, configurable: false });
 
-      // Bloquear simulaciones de clic en enlaces que abren nuevas pestañas
-      const originalClick = window.HTMLElement.prototype.click;
-      window.HTMLElement.prototype.click = function() {
-          if (this.tagName === 'A' && (this.target === '_blank' || this.target === '_new')) {
-              console.log("Pop-up de publicidad bloqueado por la extensión (simulated click).");
-              return; // Ignorar el clic
-          }
-          return originalClick.apply(this, arguments);
-      };
+          // Bloquear simulaciones de clic en enlaces
+          const originalClick = window.HTMLElement.prototype.click;
+          window.HTMLElement.prototype.click = function() {
+              if (this.tagName === 'A' && (this.target === '_blank' || this.target === '_new')) {
+                  return;
+              }
+              return originalClick.apply(this, arguments);
+          };
+      })();
     `;
     (document.head || document.documentElement).appendChild(script);
     script.remove();
 
     // 2. Desactivar capas invisibles (overlays) que capturan clics antes de que el usuario interactúe
-    function checkAndDisableOverlay(el) {
-        if (el.nodeType !== 1) return;
-        const style = window.getComputedStyle(el);
-        if (style.position === 'absolute' || style.position === 'fixed') {
-            const zIndex = parseInt(style.zIndex);
-            if (zIndex > 90) {
-                const isTransparent = style.opacity < 0.1 || style.backgroundColor === 'transparent' || style.backgroundColor.includes('rgba(0, 0, 0, 0)');
-                const isGiant = el.offsetWidth > window.innerWidth * 0.4 && el.offsetHeight > window.innerHeight * 0.4;
-                if (isTransparent && isGiant && el.style.pointerEvents !== 'none') {
-                    el.style.pointerEvents = 'none';
-                    console.log("Overlay gigante transparente desactivado (pointer-events: none).");
+    function disableOverlays() {
+        const elements = document.querySelectorAll('*');
+        for (let el of elements) {
+            const style = window.getComputedStyle(el);
+            if (style.position === 'absolute' || style.position === 'fixed') {
+                const zIndex = parseInt(style.zIndex);
+                if (zIndex > 90) {
+                    const isTransparent = style.opacity < 0.1 || style.backgroundColor === 'transparent' || style.backgroundColor.includes('rgba(0, 0, 0, 0)');
+                    const isGiant = el.offsetWidth > window.innerWidth * 0.4 && el.offsetHeight > window.innerHeight * 0.4;
+                    
+                    if (isTransparent && isGiant && el.style.pointerEvents !== 'none') {
+                        // SEGURIDAD: No desactivar si el elemento contiene el video o controles del reproductor
+                        const hasPlayerContent = el.querySelector('video, .vjs-tech, .jw-video, [role="button"], button');
+                        if (hasPlayerContent) continue;
+
+                        el.style.pointerEvents = 'none';
+                        console.log("Overlay gigante transparente desactivado (pointer-events: none).");
+                    }
                 }
+            }
+        }
+    }
+
             }
         }
     }

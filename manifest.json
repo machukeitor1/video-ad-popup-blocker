@@ -3,6 +3,11 @@
   "name": "Video Ad Popup Blocker",
   "version": "1.0",
   "description": "Bloquea ventanas emergentes (pop-ups) de publicidad al intentar reproducir videos.",
+  "icons": {
+    "16": "logo.png",
+    "48": "logo.png",
+    "128": "logo.png"
+  },
   "permissions": [
     "scripting",
     "activeTab"
