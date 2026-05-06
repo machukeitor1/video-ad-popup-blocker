@@ -92,17 +92,29 @@
         // Verificar si el clic fue en un enlace '_blank' que no es confiable (vacío, enorme o invisible)
         const link = el.closest('a');
         if (link && (link.target === '_blank' || link.target === '_new')) {
-            const style = window.getComputedStyle(link);
-            const isTransparent = style.opacity < 0.1 || style.visibility === 'hidden';
-            const isGiant = link.offsetWidth > window.innerWidth * 0.5;
-            
-            if (isTransparent || isGiant) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log("Clic bloqueado hacia enlace _blank sospechoso.");
-            }
+            try {
+                const linkUrl = new URL(link.href, window.location.origin);
+                // Si el enlace lleva a un dominio que no es Cuevana, es publicidad
+                if (!linkUrl.hostname.includes('cuevana')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log("Clic bloqueado hacia dominio externo.");
+                    return;
+                }
+            } catch (err) {}
+        }
+
         }
     }
+
+    // Bloquear formularios con target="_blank" (otro método común para abrir pop-ups)
+    document.addEventListener('submit', function(e) {
+        if (e.target && (e.target.target === '_blank' || e.target.target === '_new')) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Formulario bloqueado por la extensión.");
+        }
+    }, true);
 
     // Interceptar en la fase de captura para actuar antes que los scripts de publicidad
     document.addEventListener('click', interceptClicks, true);
