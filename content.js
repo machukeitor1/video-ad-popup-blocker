@@ -18,30 +18,11 @@
         return;
     }
 
-    // 1. Sobrescribir funciones nativas para bloquear la creación de ventanas y clics programáticos
-    const script = document.createElement('script');
-    script.textContent = `
-      (function() {
-          // Bloquear window.open de forma robusta
-          window.open = function() { 
-              console.log("Pop-up bloqueado por la extensión."); 
-              return null; 
-          };
-          // Bloquear la restauración de window.open por scripts de publicidad
-          Object.defineProperty(window, 'open', { writable: false, configurable: false });
-
-          // Bloquear simulaciones de clic en enlaces
-          const originalClick = window.HTMLElement.prototype.click;
-          window.HTMLElement.prototype.click = function() {
-              if (this.tagName === 'A' && (this.target === '_blank' || this.target === '_new')) {
-                  return;
-              }
-              return originalClick.apply(this, arguments);
-          };
-      })();
-    `;
-    (document.head || document.documentElement).appendChild(script);
-    script.remove();
+    // 1. Inyectar script en el contexto de la página para bloquear window.open (Evita bloqueo por CSP)
+    const s = document.createElement('script');
+    s.src = chrome.runtime.getURL('page.js');
+    s.onload = function() { this.remove(); };
+    (document.head || document.documentElement).appendChild(s);
 
     // 2. Desactivar capas invisibles (overlays) que capturan clics antes de que el usuario interactúe
     function disableOverlays() {

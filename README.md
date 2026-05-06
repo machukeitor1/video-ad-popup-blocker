@@ -4,29 +4,19 @@ Una extensión ligera para navegadores basada en Chrome/Edge diseñada específi
 
 ## 🚀 Características
 
-- **Bloqueo de Pop-ups:** Intercepta y anula llamadas a `window.open` y clics programáticos en enlaces `_blank`.
-- **Eliminación de Overlays:** Detecta capas invisibles gigantes que capturan el primer clic del usuario y las desactiva automáticamente.
-- **Bajo Consumo de Recursos:** Utiliza `MutationObserver` para monitorear cambios en el DOM en lugar de intervalos constantes, optimizando el uso de CPU.
-- **Enfoque Selectivo:** Solo se activa en dominios específicos para no afectar la navegación en otros sitios web.
-
-## 🛠️ Instalación (Modo Desarrollador)
-
-Dado que esta extensión no está en la Chrome Web Store, debes instalarla manualmente:
-
-1. Descarga o clona este repositorio en tu computadora.
-2. Abre tu navegador (Chrome, Edge, Brave, etc.).
-3. Ve a la sección de Extensiones: `chrome://extensions/` o `edge://extensions/`.
-4. Activa el **"Modo de desarrollador"** (Developer mode) en la esquina superior derecha.
-5. Haz clic en el botón **"Cargar descomprimida"** (Load unpacked).
-6. Selecciona la carpeta donde se encuentra el archivo `manifest.json`.
+- **Bloqueo de Pop-ups Hard-Lock:** Bloquea `window.open` e impide que los scripts de publicidad restauren la función original.
+- **Eliminación Segura de Overlays:** Detecta y desactiva capas invisibles gigantes ignorando inteligentemente los controles del reproductor de video.
+- **Detección Flexible de Dominio:** Se activa automáticamente en cualquier variante del dominio de Cuevana.
+- **Bajo Consumo de Recursos:** Algoritmos optimizados para ejecutarse sin ralentizar la navegación.
 
 ## ⚙️ Funcionamiento Técnico
 
 La extensión opera mediante un `content_script` que se ejecuta al inicio de la carga de la página (`document_start`):
 
-1. **Inyección de Script:** Sobrescribe la función nativa `window.open` para evitar la apertura de pestañas publicitarias.
-2. **Observador de Mutaciones:** Monitorea la creación de nuevos elementos en el DOM para desactivar capas transparentes con `z-index` elevado.
-3. **Intercepción de Eventos:** Escucha los clics en la fase de captura para detener eventos dirigidos a enlaces sospechosos antes de que lleguen al script de la página.
+1. **Bloqueo Nativo Hard-Lock:** Inyecta un script en el contexto principal de la página para sobrescribir `window.open` y bloquearlo mediante `Object.defineProperty`, evitando restricciones de CSP y restauraciones por scripts de publicidad.
+2. **Seguridad de Interfaz:** Escanea elementos con alto `z-index` pero omite deliberadamente aquellos que contienen tags `<video>` o controles, evitando romper la navegación del usuario.
+3. **Intercepción de Eventos:** Escucha los clics en la fase de captura para detener eventos dirigidos a enlaces sospechosos.
+
 
 ## 📄 Licencia
 
